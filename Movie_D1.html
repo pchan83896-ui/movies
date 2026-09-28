@@ -133,8 +133,59 @@
             </button>
 
             <div class="bg-dark-800 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
-                <div class="aspect-video w-full bg-black relative flex items-center justify-center">
-                    <iframe id="moviePlayerIframe" src="" class="w-full h-full absolute inset-0" frameborder="0" allowfullscreen></iframe>
+                <div class="aspect-video w-full bg-black relative flex items-center justify-center overflow-hidden">
+                    <!-- Web-page player -->
+                    <iframe id="moviePlayerIframe" src="" class="w-full h-full absolute inset-0 hidden" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+
+                    <!-- Direct video player (MP4/WebM/Ogg) -->
+                    <video id="moviePlayerVideo" class="w-full h-full absolute inset-0 hidden bg-black" controls playsinline preload="metadata"></video>
+
+                    <div id="playerLoading" class="absolute inset-0 flex items-center justify-center bg-black text-slate-300 hidden">
+                        <div class="text-center space-y-3">
+                            <i class="fa-solid fa-spinner fa-spin text-2xl text-brand-500"></i>
+                            <p class="text-sm">กำลังเปิดลิงก์...</p>
+                        </div>
+                    </div>
+
+                    <div id="playerEmpty" class="absolute inset-0 flex items-center justify-center bg-black text-slate-400 hidden p-6">
+                        <div class="text-center max-w-md space-y-3">
+                            <i class="fa-solid fa-circle-exclamation text-3xl text-amber-400"></i>
+                            <p id="playerEmptyText" class="text-sm leading-relaxed">ไม่สามารถแสดงลิงก์นี้ภายในเว็บไซต์ได้</p>
+                            <a id="playerOpenOriginal" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                เปิดลิงก์ต้นฉบับ
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Extra fallback for normal movie web pages. -->
+                    <div id="playerWebPageHelper" class="absolute left-3 right-3 bottom-3 hidden items-center justify-between gap-3 rounded-2xl bg-black/85 border border-white/10 backdrop-blur px-4 py-3 shadow-2xl">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 text-white text-sm font-semibold">
+                                <i class="fa-solid fa-globe text-brand-500"></i>
+                                <span>โหมดหน้าเว็บหนัง</span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-0.5">ถ้าหน้าจอไม่แสดง ให้เปิดหน้าเว็บต้นฉบับ</p>
+                        </div>
+                        <a id="playerWebPageOpen" href="#" target="_blank" rel="noopener noreferrer" class="shrink-0 bg-brand-600 hover:bg-brand-500 text-white px-3 py-2 rounded-xl text-xs font-semibold transition inline-flex items-center gap-2">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            เปิดต้นฉบับ
+                        </a>
+                    </div>
+                </div>
+
+                <div class="px-6 sm:px-8 pt-5">
+                    <div class="flex flex-wrap gap-3">
+                        <a id="playerOpenOriginalBottom" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition shadow-lg shadow-brand-500/20">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            เปิดลิงก์ต้นฉบับ
+                        </a>
+                        <button id="playerReloadBtn" type="button" onclick="reloadCurrentPlayer()" class="inline-flex items-center gap-2 bg-dark-900 border border-slate-700 hover:bg-slate-700 text-slate-200 px-4 py-2.5 rounded-xl text-sm font-medium transition">
+                            <i class="fa-solid fa-rotate-right"></i>
+                            โหลดใหม่
+                        </button>
+                    </div>
+                    <p id="playerUrlHint" class="text-xs text-slate-500 mt-3 break-all"></p>
                 </div>
                 <div class="p-6 sm:p-8 space-y-4">
                     <div class="flex flex-wrap items-center justify-between gap-4">
@@ -262,8 +313,8 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">ลิงก์วิดีโอหนัง (Embed / MP4 / YouTube URL)</label>
-                    <input type="url" id="movieUrlInput" required placeholder="https://www.youtube.com/embed/xxxx หรือไฟล์วิดีโอ" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-white">
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">ลิงก์หนัง (หน้าเว็บ / Embed / MP4 / YouTube URL)</label>
+                    <input type="url" id="movieUrlInput" required placeholder="https://example.com/movie/123 หรือ YouTube / MP4" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-white">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">เรื่องย่อภาพยนตร์</label>
@@ -927,9 +978,120 @@
         // Player
         // ============================================================
 
+        // ============================================================
+        // Player
+        // ============================================================
+
+        let currentPlayingMovie = null;
+
+        function getVideoType(url) {
+            const value = String(url || '').trim();
+            if (!value) return 'empty';
+
+            try {
+                const parsed = new URL(value, window.location.href);
+                const host = parsed.hostname.toLowerCase();
+                const path = parsed.pathname.toLowerCase();
+
+                // YouTube links should be embedded in an iframe.
+                if (host === 'youtube.com' || host === 'www.youtube.com' ||
+                    host === 'm.youtube.com' || host === 'youtu.be' ||
+                    host === 'www.youtube-nocookie.com') {
+                    return 'iframe';
+                }
+
+                // Direct browser-playable video files.
+                if (/\.(mp4|webm|ogg|ogv)(?:$|\?)/i.test(path)) {
+                    return 'video';
+                }
+
+                // HLS playlists need a player/library; don't put them in an iframe as a file.
+                if (/\.m3u8(?:$|\?)/i.test(path)) {
+                    return 'hls';
+                }
+            } catch {}
+
+            // A normal webpage is treated as an iframe first.
+            return 'iframe';
+        }
+
+        function toYouTubeEmbedUrl(url) {
+            try {
+                const parsed = new URL(url);
+                const host = parsed.hostname.toLowerCase();
+
+                if (host === 'youtu.be' || host === 'www.youtu.be') {
+                    const id = parsed.pathname.replace(/^\/+/, '').split('/')[0];
+                    return id ? `https://www.youtube.com/embed/${id}` : url;
+                }
+
+                if (host === 'youtube.com' || host === 'www.youtube.com' || host === 'm.youtube.com') {
+                    if (parsed.pathname === '/watch') {
+                        const id = parsed.searchParams.get('v');
+                        if (id) return `https://www.youtube.com/embed/${id}`;
+                    }
+
+                    if (parsed.pathname.startsWith('/shorts/')) {
+                        const id = parsed.pathname.split('/')[2];
+                        if (id) return `https://www.youtube.com/embed/${id}`;
+                    }
+
+                    if (parsed.pathname.startsWith('/embed/')) {
+                        return url;
+                    }
+                }
+            } catch {}
+
+            return url;
+        }
+
+        function setPlayerMode(mode) {
+            const iframe = document.getElementById('moviePlayerIframe');
+            const video = document.getElementById('moviePlayerVideo');
+            const loading = document.getElementById('playerLoading');
+            const empty = document.getElementById('playerEmpty');
+            const webHelper = document.getElementById('playerWebPageHelper');
+
+            iframe.classList.add('hidden');
+            video.classList.add('hidden');
+            loading.classList.add('hidden');
+            empty.classList.add('hidden');
+            webHelper.classList.add('hidden');
+            webHelper.classList.remove('flex');
+
+            if (mode === 'loading') loading.classList.remove('hidden');
+            if (mode === 'iframe') iframe.classList.remove('hidden');
+            if (mode === 'video') video.classList.remove('hidden');
+            if (mode === 'empty') empty.classList.remove('hidden');
+            if (mode === 'webpage') {
+                iframe.classList.remove('hidden');
+                webHelper.classList.remove('hidden');
+                webHelper.classList.add('flex');
+            }
+        }
+
+        function setWebPageLinks(url) {
+            const ids = ['playerOpenOriginal', 'playerOpenOriginalBottom', 'playerWebPageOpen'];
+            ids.forEach(id => {
+                const link = document.getElementById(id);
+                if (!link) return;
+                link.href = url || '#';
+                link.classList.toggle('pointer-events-none', !url);
+                link.classList.toggle('opacity-50', !url);
+            });
+        }
+
+        function setOriginalLink(url) {
+            setWebPageLinks(url);
+            const hint = document.getElementById('playerUrlHint');
+            if (hint) hint.innerText = url ? `ลิงก์: ${url}` : '';
+        }
+
         function playMovie(id) {
             const movie = movies.find(m => String(m.id) === String(id));
             if (!movie) return;
+
+            currentPlayingMovie = movie;
 
             document.getElementById('playerTitle').innerText = movie.title;
             document.getElementById('playerCategoryBadge').innerText =
@@ -939,28 +1101,94 @@
             document.getElementById('playerDate').innerText =
                 `เพิ่มเมื่อ: ${movie.date || '-'}`;
 
-            let embedUrl = movie.videoUrl || '';
+            const iframe = document.getElementById('moviePlayerIframe');
+            const video = document.getElementById('moviePlayerVideo');
+            const url = String(movie.videoUrl || '').trim();
 
-            if (embedUrl.includes('watch?v=')) {
-                try {
-                    const url = new URL(embedUrl);
-                    const videoId = url.searchParams.get('v');
-                    if (videoId) {
-                        embedUrl = `https://www.youtube.com/embed/${videoId}`;
-                    }
-                } catch {}
-            } else if (embedUrl.includes('youtu.be/')) {
-                try {
-                    const url = new URL(embedUrl);
-                    const videoId = url.pathname.replace(/^\/+/, '').split('/')[0];
-                    if (videoId) {
-                        embedUrl = `https://www.youtube.com/embed/${videoId}`;
-                    }
-                } catch {}
+            // Stop and clear anything that was previously playing.
+            iframe.src = 'about:blank';
+            video.pause();
+            video.removeAttribute('src');
+            video.load();
+
+            setOriginalLink(url);
+
+            if (!url) {
+                document.getElementById('playerEmptyText').innerText =
+                    'เรื่องนี้ยังไม่มีลิงก์วิดีโอ';
+                setPlayerMode('empty');
+                switchView('player');
+                return;
             }
 
-            document.getElementById('moviePlayerIframe').src = embedUrl;
+            const type = getVideoType(url);
+
+            if (type === 'video') {
+                setPlayerMode('loading');
+                video.src = url;
+                video.onloadedmetadata = () => setPlayerMode('video');
+                video.onerror = () => {
+                    document.getElementById('playerEmptyText').innerText =
+                        'ไม่สามารถเล่นไฟล์วิดีโอนี้ในเบราว์เซอร์ได้ กรุณาเปิดลิงก์ต้นฉบับ';
+                    setPlayerMode('empty');
+                };
+                video.load();
+            } else if (type === 'iframe') {
+                const isYouTube = (() => {
+                    try {
+                        const host = new URL(url).hostname.toLowerCase();
+                        return host === 'youtube.com' || host === 'www.youtube.com' ||
+                               host === 'm.youtube.com' || host === 'youtu.be' ||
+                               host === 'www.youtu.be';
+                    } catch { return false; }
+                })();
+
+                const embedUrl = isYouTube ? toYouTubeEmbedUrl(url) : url;
+                setPlayerMode(isYouTube ? 'loading' : 'webpage');
+
+                // A normal movie webpage is intentionally supported here.
+                // Some sites allow iframe embedding; others block it with CSP/X-Frame-Options.
+                // The direct-open button is therefore always visible in webpage mode.
+                iframe.onload = () => {
+                    if (currentPlayingMovie !== movie) return;
+                    setPlayerMode(isYouTube ? 'iframe' : 'webpage');
+                };
+                iframe.onerror = () => {
+                    if (currentPlayingMovie !== movie) return;
+                    document.getElementById('playerEmptyText').innerText =
+                        'เว็บไซต์ปลายทางไม่อนุญาตให้แสดงภายใน StreamFlix กรุณาเปิดหน้าเว็บต้นฉบับ';
+                    setPlayerMode('empty');
+                };
+                iframe.src = embedUrl;
+
+                // If a page stays blank, don't pretend that it is a playable video.
+                // Show a clear fallback after a short delay while keeping the iframe available.
+                if (!isYouTube) {
+                    setTimeout(() => {
+                        if (currentPlayingMovie !== movie) return;
+                        const helper = document.getElementById('playerWebPageHelper');
+                        if (helper) {
+                            helper.classList.remove('hidden');
+                            helper.classList.add('flex');
+                        }
+                    }, 800);
+                }
+            } else if (type === 'hls') {
+                document.getElementById('playerEmptyText').innerText =
+                    'ลิงก์นี้เป็น HLS (.m3u8) ซึ่งต้องใช้ตัวเล่น HLS เพิ่มเติม จึงยังไม่สามารถเล่นโดยตรงในตัวนี้ได้';
+                setPlayerMode('empty');
+            } else {
+                document.getElementById('playerEmptyText').innerText =
+                    'ไม่สามารถระบุรูปแบบลิงก์นี้ได้ กรุณาเปิดลิงก์ต้นฉบับ';
+                setPlayerMode('empty');
+            }
+
             switchView('player');
+        }
+
+        function reloadCurrentPlayer() {
+            if (!currentPlayingMovie) return;
+            playMovie(currentPlayingMovie.id);
         }
 
         // ============================================================
