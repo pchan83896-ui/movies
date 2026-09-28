@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamFlix - แพลตฟอร์มดูหนังออนไลน์และระบบหลังบ้าน</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155',
+                        },
+                        brand: {
+                            500: '#ef4444',
+                            600: '#dc2626',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="bg-dark-900 text-slate-100 min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+    <header class="sticky top-0 z-50 bg-dark-900/90 backdrop-blur border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchView('home')">
+                <div class="bg-brand-500 p-2 rounded-xl text-white font-bold flex items-center justify-center shadow-lg shadow-brand-500/30">
+                    <i class="fa-solid fa-play text-lg"></i>
+                </div>
+                <span class="text-xl font-bold tracking-wider bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">StreamFlix</span>
+            </div>
+            
+            <nav class="hidden md:flex items-center space-x-6 text-sm font-medium">
+                <button onclick="switchView('home')" class="nav-link text-white hover:text-brand-500 transition">หน้าแรก</button>
+                <div class="relative group">
+                    <button class="flex items-center space-x-1 hover:text-brand-500 transition py-2">
+                        <span>หมวดหมู่</span>
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                    </button>
+                    <div class="absolute left-0 mt-0 w-48 bg-dark-800 border border-slate-700 rounded-xl shadow-2xl py-2 hidden group-hover:block z-50">
+                        <button onclick="filterCategory('ทั้งหมด')" class="w-full text-left px-4 py-2 hover:bg-slate-700/50 text-slate-200 text-sm">ทั้งหมด</button>
+                        <button onclick="filterCategory('A')" class="w-full text-left px-4 py-2 hover:bg-slate-700/50 text-slate-200 text-sm">หมวดหมู่ A (แอคชั่น)</button>
+                        <button onclick="filterCategory('B')" class="w-full text-left px-4 py-2 hover:bg-slate-700/50 text-slate-200 text-sm">หมวดหมู่ B (ดราม่า)</button>
+                        <button onclick="filterCategory('C')" class="w-full text-left px-4 py-2 hover:bg-slate-700/50 text-slate-200 text-sm">หมวดหมู่ C (คอมเมดี้)</button>
+                        <button onclick="filterCategory('D')" class="w-full text-left px-4 py-2 hover:bg-slate-700/50 text-slate-200 text-sm">หมวดหมู่ D (ไซไฟ)</button>
+                        <button onclick="filterCategory('E')" class="w-full text-left px-4 py-2 hover:bg-slate-700/50 text-slate-200 text-sm">หมวดหมู่ E (สยองขวัญ)</button>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="flex items-center space-x-4">
+                <div class="relative hidden sm:block">
+                    <input type="text" id="searchInput" placeholder="ค้นหาหนัง..." oninput="handleSearch(this.value)" class="bg-dark-800 border border-slate-700 rounded-full pl-10 pr-4 py-1.5 text-sm focus:outline-none focus:border-brand-500 w-48 lg:w-64 transition">
+                    <i class="fa-solid fa-magnifyingGlass absolute left-3.5 top-2.5 text-slate-400 text-sm"></i>
+                </div>
+                
+                <button onclick="switchView('admin')" id="adminNavBtn" class="bg-dark-800 border border-slate-700 hover:bg-slate-700 px-4 py-2 rounded-xl text-sm font-medium flex items-center space-x-2 transition shadow-sm">
+                    <i class="fa-solid fa-gear text-slate-400"></i>
+                    <span class="hidden sm:inline">ระบบหลังบ้าน</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        
+        <!-- HOME VIEW -->
+        <div id="homeView" class="space-y-8">
+            <!-- Hero Banner / Featured section -->
+            <div id="featuredSection" class="relative rounded-3xl overflow-hidden bg-dark-800 border border-slate-800 shadow-2xl min-h-[380px] flex items-center">
+                <div class="absolute inset-0 z-0">
+                    <img id="featuredBg" src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=1600&q=80" alt="Featured" class="w-full h-full object-cover opacity-30 filter blur-sm">
+                    <div class="absolute inset-0 bg-gradient-to-t from-dark-900 via-dark-900/60 to-transparent"></div>
+                </div>
+                <div class="relative z-10 p-6 sm:p-12 max-w-2xl space-y-4">
+                    <span id="featuredCategory" class="bg-brand-600 text-white text-xs px-3 py-1 rounded-full font-semibold uppercase tracking-wider">หมวดหมู่ A</span>
+                    <h1 id="featuredTitle" class="text-3xl sm:text-5xl font-extrabold tracking-tight">กำลังโหลดภาพยนตร์...</h1>
+                    <p id="featuredDesc" class="text-slate-300 text-sm sm:text-base line-clamp-3">เลือกชมภาพยนตร์ยอดฮิตอัปเดตใหม่ล่าสุด พร้อมรับชมความคมชัดระดับ HD แบบไม่สะดุด</p>
+                    <div class="flex items-center space-x-3 pt-2">
+                        <button id="featuredPlayBtn" onclick="playFeaturedMovie()" class="bg-brand-600 hover:bg-brand-500 text-white font-medium px-6 py-3 rounded-xl flex items-center space-x-2 shadow-lg shadow-brand-500/40 transition transform hover:-translate-y-0.5">
+                            <i class="fa-solid fa-play"></i>
+                            <span>รับชมเลย</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Filter Buttons Bar -->
+            <div class="flex items-center justify-between flex-wrap gap-4 pt-4 border-b border-slate-800 pb-4">
+                <div class="flex items-center space-x-2 overflow-x-auto pb-2 sm:pb-0 max-w-full">
+                    <button onclick="filterCategory('ทั้งหมด')" id="cat-btn-ทั้งหมด" class="cat-filter-btn px-4 py-2 rounded-xl text-sm font-medium transition bg-brand-600 text-white shadow-md shadow-brand-500/20">ทั้งหมด</button>
+                    <button onclick="filterCategory('A')" id="cat-btn-A" class="cat-filter-btn px-4 py-2 rounded-xl text-sm font-medium transition bg-dark-800 border border-slate-700 text-slate-300 hover:bg-slate-700">หมวดหมู่ A</button>
+                    <button onclick="filterCategory('B')" id="cat-btn-B" class="cat-filter-btn px-4 py-2 rounded-xl text-sm font-medium transition bg-dark-800 border border-slate-700 text-slate-300 hover:bg-slate-700">หมวดหมู่ B</button>
+                    <button onclick="filterCategory('C')" id="cat-btn-C" class="cat-filter-btn px-4 py-2 rounded-xl text-sm font-medium transition bg-dark-800 border border-slate-700 text-slate-300 hover:bg-slate-700">หมวดหมู่ C</button>
+                    <button onclick="filterCategory('D')" id="cat-btn-D" class="cat-filter-btn px-4 py-2 rounded-xl text-sm font-medium transition bg-dark-800 border border-slate-700 text-slate-300 hover:bg-slate-700">หมวดหมู่ D</button>
+                    <button onclick="filterCategory('E')" id="cat-btn-E" class="cat-filter-btn px-4 py-2 rounded-xl text-sm font-medium transition bg-dark-800 border border-slate-700 text-slate-300 hover:bg-slate-700">หมวดหมู่ E</button>
+                </div>
+                <div class="text-sm text-slate-400">
+                    แสดงผล <span id="movieCount" class="font-semibold text-white">0</span> เรื่อง
+                </div>
+            </div>
+
+            <!-- Movie Grid -->
+            <div id="movieGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                <!-- Populated via JavaScript -->
+            </div>
+        </div>
+
+        <!-- PLAYER VIEW -->
+        <div id="playerView" class="hidden space-y-6">
+            <button onclick="switchView('home')" class="bg-dark-800 border border-slate-700 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-xl text-sm font-medium flex items-center space-x-2 transition">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>กลับหน้าแรก</span>
+            </button>
+
+            <div class="bg-dark-800 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
+                <div class="aspect-video w-full bg-black relative flex items-center justify-center overflow-hidden">
+                    <!-- Web-page player -->
+                    <iframe id="moviePlayerIframe" src="" class="w-full h-full absolute inset-0 hidden" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+
+                    <!-- Direct video player (MP4/WebM/Ogg) -->
+                    <video id="moviePlayerVideo" class="w-full h-full absolute inset-0 hidden bg-black" controls playsinline preload="metadata"></video>
+
+                    <div id="playerLoading" class="absolute inset-0 flex items-center justify-center bg-black text-slate-300 hidden">
+                        <div class="text-center space-y-3">
+                            <i class="fa-solid fa-spinner fa-spin text-2xl text-brand-500"></i>
+                            <p class="text-sm">กำลังเปิดลิงก์...</p>
+                        </div>
+                    </div>
+
+                    <div id="playerEmpty" class="absolute inset-0 flex items-center justify-center bg-black text-slate-400 hidden p-6">
+                        <div class="text-center max-w-md space-y-4">
+                            <i id="playerEmptyIcon" class="fa-solid fa-circle-exclamation text-3xl text-amber-400"></i>
+                            <p id="playerEmptyText" class="text-sm leading-relaxed">ไม่สามารถแสดงลิงก์นี้ภายในเว็บไซต์ได้</p>
+                            <button id="playerOpenButton" type="button" onclick="openCurrentMovieExternal()" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                เปิดดูหนัง
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-6 sm:px-8 pt-5">
+                    <div class="flex flex-wrap gap-3">
+                        <a id="playerOpenOriginalBottom" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition shadow-lg shadow-brand-500/20">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            เปิดลิงก์ต้นฉบับ
+                        </a>
+                        <button id="playerReloadBtn" type="button" onclick="reloadCurrentPlayer()" class="inline-flex items-center gap-2 bg-dark-900 border border-slate-700 hover:bg-slate-700 text-slate-200 px-4 py-2.5 rounded-xl text-sm font-medium transition">
+                            <i class="fa-solid fa-rotate-right"></i>
+                            โหลดใหม่
+                        </button>
+                    </div>
+                    <p id="playerUrlHint" class="text-xs text-slate-500 mt-3 break-all"></p>
+                </div>
+                <div class="p-6 sm:p-8 space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <span id="playerCategoryBadge" class="bg-brand-600 text-white text-xs px-3 py-1 rounded-full font-semibold uppercase tracking-wider">หมวดหมู่</span>
+                            <h2 id="playerTitle" class="text-2xl sm:text-3xl font-bold mt-2">ชื่อภาพยนตร์</h2>
+                        </div>
+                        <div class="flex items-center space-x-2 text-slate-400 text-sm">
+                            <i class="fa-regular fa-clock"></i>
+                            <span id="playerDate">เพิ่มเมื่อ: -</span>
+                        </div>
+                    </div>
+                    <p id="playerDesc" class="text-slate-300 text-sm sm:text-base leading-relaxed border-t border-slate-700/50 pt-4">คำอธิบายภาพยนตร์...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADMIN VIEW -->
+        <div id="adminView" class="hidden space-y-8">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-bold">ระบบหลังบ้าน (จัดการภาพยนตร์)</h1>
+                    <p class="text-slate-400 text-sm mt-1">เพิ่ม แก้ไข หรือลบลิงก์ภาพยนตร์ พร้อมจัดการหมวดหมู่และรูปภาพโปสเตอร์</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="switchView('home')" class="bg-dark-800 border border-slate-700 hover:bg-slate-700 px-4 py-2 rounded-xl text-sm font-medium transition">
+                        <i class="fa-solid fa-house mr-1"></i> ไปหน้าเว็บหลัก
+                    </button>
+                    <button onclick="logoutAdmin()" class="bg-dark-800 border border-slate-700 hover:bg-slate-700 px-4 py-2 rounded-xl text-sm font-medium transition">
+                        <i class="fa-solid fa-right-from-bracket mr-1"></i> ออกจากระบบ
+                    </button>
+                    <button onclick="openAddMovieModal()" class="bg-brand-600 hover:bg-brand-500 text-white px-5 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 shadow-lg shadow-brand-500/30 transition">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>เพิ่มหนังใหม่</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Overview Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+                <div class="bg-dark-800 border border-slate-800 rounded-2xl p-5 shadow-lg">
+                    <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">ภาพยนตร์ทั้งหมด</div>
+                    <div id="statTotal" class="text-2xl font-bold mt-2 text-white">0</div>
+                </div>
+                <div class="bg-dark-800 border border-slate-800 rounded-2xl p-5 shadow-lg">
+                    <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">หมวดหมู่ A</div>
+                    <div id="statCatA" class="text-2xl font-bold mt-2 text-brand-500">0</div>
+                </div>
+                <div class="bg-dark-800 border border-slate-800 rounded-2xl p-5 shadow-lg">
+                    <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">หมวดหมู่ B</div>
+                    <div id="statCatB" class="text-2xl font-bold mt-2 text-brand-500">0</div>
+                </div>
+                <div class="bg-dark-800 border border-slate-800 rounded-2xl p-5 shadow-lg">
+                    <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">หมวดหมู่ C</div>
+                    <div id="statCatC" class="text-2xl font-bold mt-2 text-brand-500">0</div>
+                </div>
+                <div class="bg-dark-800 border border-slate-800 rounded-2xl p-5 shadow-lg">
+                    <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">หมวดหมู่ D</div>
+                    <div id="statCatD" class="text-2xl font-bold mt-2 text-brand-500">0</div>
+                </div>
+                <div class="bg-dark-800 border border-slate-800 rounded-2xl p-5 shadow-lg">
+                    <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">หมวดหมู่ E</div>
+                    <div id="statCatE" class="text-2xl font-bold mt-2 text-brand-500">0</div>
+                </div>
+            </div>
+
+            <!-- Admin Movie Table / List -->
+            <div class="bg-dark-800 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
+                <div class="p-6 border-b border-slate-700/50 flex items-center justify-between">
+                    <h3 class="font-bold text-lg">รายการภาพยนตร์ในระบบ</h3>
+                    <input type="text" placeholder="ค้นหาในระบบหลังบ้าน..." oninput="filterAdminTable(this.value)" class="bg-dark-900 border border-slate-700 rounded-xl px-4 py-1.5 text-sm focus:outline-none focus:border-brand-500 w-64">
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-dark-900/50 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-700/50">
+                                <th class="p-4">โปสเตอร์</th>
+                                <th class="p-4">ชื่อภาพยนตร์</th>
+                                <th class="p-4">หมวดหมู่</th>
+                                <th class="p-4">ลิงก์วิดีโอ</th>
+                                <th class="p-4 text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminMovieTableBody" class="divide-y divide-slate-800 text-sm">
+                            <!-- Populated via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="movieModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-dark-800 border border-slate-700 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl transform transition-all">
+            <div class="p-6 border-b border-slate-700 flex items-center justify-between">
+                <h3 id="modalTitle" class="font-bold text-lg">เพิ่มภาพยนตร์ใหม่</h3>
+                <button onclick="closeMovieModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="movieForm" onsubmit="saveMovie(event)" class="p-6 space-y-4">
+                <input type="hidden" id="movieId">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">ชื่อภาพยนตร์</label>
+                    <input type="text" id="movieTitleInput" required placeholder="เช่น อเวนเจอร์ส" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">หมวดหมู่ภาพยนตร์</label>
+                    <select id="movieCategoryInput" required class="w-full bg-dark-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-white">
+                        <option value="A">หมวดหมู่ A (แอคชั่น)</option>
+                        <option value="B">หมวดหมู่ B (ดราม่า)</option>
+                        <option value="C">หมวดหมู่ C (คอมเมดี้)</option>
+                        <option value="D">หมวดหมู่ D (ไซไฟ)</option>
+                        <option value="E">หมวดหมู่ E (สยองขวัญ)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">ลิงก์รูปภาพโปสเตอร์ (Image URL)</label>
+                    <input type="url" id="moviePosterInput" required placeholder="https://example.com/poster.jpg" oninput="previewPosterUrl(this.value)" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-white">
+                    <!-- Live Image Preview Box -->
+                    <div class="mt-2 flex items-center space-x-3 bg-dark-900/50 p-3 rounded-xl border border-slate-800">
+                        <img id="posterPreviewImg" src="https://placehold.co/100x150/1e293b/94a3b8?text=Preview" onerror="this.src='https://placehold.co/100x150/1e293b/94a3b8?text=No+Image'" class="w-12 h-16 object-cover rounded-lg border border-slate-700">
+                        <span class="text-xs text-slate-400">ตัวอย่างรูปภาพโปสเตอร์ที่จะแสดงผลบนหน้าเว็บไซต์</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">ลิงก์วิดีโอหนัง (Embed / MP4 / YouTube URL)</label>
+                    <input type="url" id="movieUrlInput" required placeholder="https://www.youtube.com/embed/xxxx หรือไฟล์วิดีโอ" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">เรื่องย่อภาพยนตร์</label>
+                    <textarea id="movieDescInput" rows="3" placeholder="ระบุเนื้อเรื่องย่อ..." class="w-full bg-dark-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-white resize-none"></textarea>
+                </div>
+                <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-700">
+                    <button type="button" onclick="closeMovieModal()" class="bg-dark-900 border border-slate-700 hover:bg-slate-700 text-slate-300 px-5 py-2.5 rounded-xl text-sm font-medium transition">ยกเลิก</button>
+                    <button type="submit" class="bg-brand-600 hover:bg-brand-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-brand-500/30 transition">บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Admin Login Modal -->
+    <div id="adminLoginModal" class="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-dark-800 border border-slate-700 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl">
+            <div class="p-6 border-b border-slate-700">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-brand-600/20 text-brand-500 w-10 h-10 rounded-xl flex items-center justify-center">
+                        <i class="fa-solid fa-lock"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg">เข้าสู่ระบบหลังบ้าน</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">เฉพาะผู้ดูแลระบบ</p>
+                    </div>
+                </div>
+            </div>
+
+            <form onsubmit="submitAdminLogin(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                        รหัสผ่านผู้ดูแล
+                    </label>
+                    <input
+                        type="password"
+                        id="adminPasswordInput"
+                        required
+                        autocomplete="current-password"
+                        placeholder="กรอกรหัสผ่าน"
+                        class="w-full bg-dark-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-white"
+                    >
+                </div>
+
+                <div class="flex items-center justify-end space-x-3 pt-2">
+                    <button
+                        type="button"
+                        onclick="cancelAdminLogin()"
+                        class="bg-dark-900 border border-slate-700 hover:bg-slate-700 text-slate-300 px-5 py-2.5 rounded-xl text-sm font-medium transition"
+                    >
+                        ยกเลิก
+                    </button>
+
+                    <button
+                        type="submit"
+                        id="adminLoginButton"
+                        class="bg-brand-600 hover:bg-brand-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-brand-500/30 transition"
+                    >
+                        เข้าสู่ระบบ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notification Modal (replacing alert) -->
+    <div id="notificationModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-dark-800 border border-slate-700 rounded-3xl w-full max-w-sm p-6 text-center space-y-4 shadow-2xl">
+            <div id="notifIcon" class="w-12 h-12 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <h4 id="notifTitle" class="text-lg font-bold">สำเร็จ</h4>
+            <p id="notifMessage" class="text-sm text-slate-300">ดำเนินการเรียบร้อยแล้ว</p>
+            <button onclick="closeNotification()" class="w-full bg-brand-600 hover:bg-brand-500 text-white py-2.5 rounded-xl text-sm font-semibold transition shadow-lg shadow-brand-500/30">ตกลง</button>
+        </div>
+    </div>
+
+    <footer class="bg-dark-800 border-t border-slate-800 mt-auto py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-400 space-y-2">
+            <p>© 2026 StreamFlix - แพลตฟอร์มดูหนังออนไลน์และระบบหลังบ้าน</p>
+            <p class="text-xs">ออกแบบและพัฒนาเพื่อความบันเทิงสมบูรณ์แบบ รองรับทุกหมวดหมู่ A B C D E</p>
+        </div>
+    </footer>
+
+    
+    <script>
+        /*
+         * ============================================================
+         * STREAMFLIX - DATABASE EDITION
+         * ============================================================
+         * 1) Replace API_BASE_URL with your Cloudflare Worker URL.
+         * 2) The public site can READ movies without a password.
+         * 3) ADD / EDIT / DELETE require the Worker ADMIN_PASSWORD secret.
+         *
+         * Example:
+         * const API_BASE_URL = 'https://streamflix-api.your-subdomain.workers.dev';
+         */
+
+        const API_BASE_URL = 'PASTE_YOUR_WORKER_URL_HERE'.replace(/\/+$/, '');
+
+        // Local UI state only. Movie data itself comes from Cloudflare D1.
+        let movies = [];
+        let currentCategory = 'ทั้งหมด';
+        let currentSearchQuery = '';
+        let adminToken = sessionStorage.getItem('streamflix_admin_key') || '';
+
+        const defaultMovies = [
+            {
+                id: '1',
+                title: 'Cyberpunk 2077: Edge',
+                category: 'D',
+                poster: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=600&q=80',
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                desc: 'เรื่องราวโลกอนาคตไซไฟสุดล้ำยุค เมื่อเทคโนโลยีครอบงำมนุษยชาติ การต่อสู้เพื่อความอยู่รอดจึงเริ่มต้นขึ้นในเงามืดของแสงนีออน',
+                date: '2026-03-01'
+            },
+            {
+                id: '2',
+                title: 'The Last Action Hero',
+                category: 'A',
+                poster: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=600&q=80',
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                desc: 'ภาพยนตร์แอคชั่นฟอร์มยักษ์ ระเบิดภูเขาเผากระท่อม การไล่ล่าข้ามโลกที่เต็มไปด้วยฉากบู๊ระห่ำสะใจทุกวินาที',
+                date: '2026-03-02'
+            },
+            {
+                id: '3',
+                title: 'Echoes of Silence',
+                category: 'B',
+                poster: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=600&q=80',
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                desc: 'ภาพยนตร์ดราม่าสะเทือนอารมณ์ เจาะลึกความสัมพันธ์ของมนุษย์และความเงียบงันที่ซ่อนความลับอันเจ็บปวดไว้เบื้องหลัง',
+                date: '2026-03-03'
+            },
+            {
+                id: '4',
+                title: 'Laugh Out Loud Comedy',
+                category: 'C',
+                poster: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=600&q=80',
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                desc: 'คอมเมดี้เบาสมองเสียงฮาครื้นคลัง ที่จะทำให้คุณหัวเราะจนกรามค้างไปกับมุกตลกสุดคาดเดาจากแก๊งเพื่อนซี้',
+                date: '2026-03-04'
+            },
+            {
+                id: '5',
+                title: 'Nightmare Manor',
+                category: 'E',
+                poster: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=600&q=80',
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                desc: 'ภาพยนตร์สยองขวัญสั่นประสาท บ้านพักอาถรรพ์ที่ซ่อนวิญญาณและความสยดสยองรอผู้มาเยือนแบบไม่ทันตั้งตัว',
+                date: '2026-03-05'
+            }
+        ];
+
+        const categoryNames = {
+            'A': 'หมวดหมู่ A (แอคชั่น)',
+            'B': 'หมวดหมู่ B (ดราม่า)',
+            'C': 'หมวดหมู่ C (คอมเมดี้)',
+            'D': 'หมวดหมู่ D (ไซไฟ)',
+            'E': 'หมวดหมู่ E (สยองขวัญ)'
+        };
+
+        function apiConfigured() {
+            return API_BASE_URL &&
+                   !API_BASE_URL.includes('PASTE_YOUR_WORKER_URL_HERE');
+        }
+
+        function apiUrl(path) {
+            return API_BASE_URL + path;
+        }
+
+        function authHeaders() {
+            return adminToken ? { 'X-Admin-Key': adminToken } : {};
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function normalizeMovie(row) {
+            return {
+                id: String(row.id),
+                title: row.title || '',
+                category: row.category || 'A',
+                poster: row.poster || '',
+                videoUrl: row.videoUrl ?? row.video_url ?? '',
+                desc: row.desc ?? row.description ?? '',
+                date: row.date || ''
+            };
+        }
+
+        async function readApiError(response) {
+            try {
+                const data = await response.json();
+                return data.error || data.message || `HTTP ${response.status}`;
+            } catch {
+                return `HTTP ${response.status}`;
+            }
+        }
+
+        async function loadMovies() {
+            if (!apiConfigured()) {
+                movies = defaultMovies;
+                showNotification(
+                    'ต้องตั้งค่า API',
+                    'เปิดไฟล์ Movie.html แล้วใส่ URL ของ Cloudflare Worker ในตัวแปร API_BASE_URL ก่อนใช้งานฐานข้อมูลจริง'
+                );
+                renderMovies();
+                updateStats();
+                renderAdminTable();
+                setupFeaturedMovie();
+                return;
+            }
+
+            try {
+                const response = await fetch(apiUrl('/movies?limit=20000'), {
+                    method: 'GET',
+                    cache: 'no-store'
+                });
+
+                if (!response.ok) {
+                    throw new Error(await readApiError(response));
+                }
+
+                const data = await response.json();
+                movies = Array.isArray(data.movies)
+                    ? data.movies.map(normalizeMovie)
+                    : [];
+
+                renderMovies();
+                updateStats();
+                renderAdminTable();
+                setupFeaturedMovie();
+            } catch (error) {
+                console.error('loadMovies error:', error);
+                movies = [];
+                renderMovies();
+                updateStats();
+                renderAdminTable();
+                setupFeaturedMovie();
+
+                showNotification(
+                    'โหลดฐานข้อมูลไม่สำเร็จ',
+                    `ไม่สามารถเชื่อมต่อ Cloudflare Worker ได้: ${error.message}`
+                );
+            }
+        }
+
+        async function createMovie(movie) {
+            const response = await fetch(apiUrl('/movies'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authHeaders()
+                },
+                body: JSON.stringify(movie)
+            });
+
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            return normalizeMovie(await response.json());
+        }
+
+        async function updateMovieRemote(id, movie) {
+            const response = await fetch(
+                apiUrl(`/movies/${encodeURIComponent(id)}`),
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...authHeaders()
+                    },
+                    body: JSON.stringify(movie)
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            return normalizeMovie(await response.json());
+        }
+
+        async function deleteMovieRemote(id) {
+            const response = await fetch(
+                apiUrl(`/movies/${encodeURIComponent(id)}`),
+                {
+                    method: 'DELETE',
+                    headers: authHeaders()
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            return response.json();
+        }
+
+        async function verifyAdminKey(key) {
+            const response = await fetch(apiUrl('/auth'), {
+                method: 'GET',
+                headers: {
+                    'X-Admin-Key': key
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            return true;
+        }
+
+        // ============================================================
+        // App initialization
+        // ============================================================
+
+        window.onload = async function() {
+            renderMovies();
+            updateStats();
+            renderAdminTable();
+            setupFeaturedMovie();
+            await loadMovies();
+        };
+
+        // ============================================================
+        // View switching
+        // ============================================================
+
+        async function switchView(viewName) {
+            if (viewName === 'admin') {
+                const authenticated = await ensureAdminAuth();
+                if (!authenticated) return;
+            }
+
+            document.getElementById('homeView').classList.add('hidden');
+            document.getElementById('adminView').classList.add('hidden');
+            document.getElementById('playerView').classList.add('hidden');
+
+            if (viewName === 'home') {
+                document.getElementById('homeView').classList.remove('hidden');
+                renderMovies();
+                setupFeaturedMovie();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else if (viewName === 'admin') {
+                document.getElementById('adminView').classList.remove('hidden');
+                renderAdminTable();
+                updateStats();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else if (viewName === 'player') {
+                document.getElementById('playerView').classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // ============================================================
+        // Admin login
+        // ============================================================
+
+        function openAdminLoginModal() {
+            document.getElementById('adminLoginModal').classList.remove('hidden');
+            const input = document.getElementById('adminPasswordInput');
+            input.value = '';
+            setTimeout(() => input.focus(), 100);
+        }
+
+        function closeAdminLoginModal() {
+            document.getElementById('adminLoginModal').classList.add('hidden');
+        }
+
+        async function submitAdminLogin(event) {
+            event.preventDefault();
+
+            if (!apiConfigured()) {
+                showNotification(
+                    'ยังไม่ได้ตั้งค่า API',
+                    'กรุณาใส่ URL ของ Cloudflare Worker ใน API_BASE_URL ก่อน'
+                );
+                return;
+            }
+
+            const input = document.getElementById('adminPasswordInput');
+            const button = document.getElementById('adminLoginButton');
+            const key = input.value;
+
+            if (!key) return;
+
+            button.disabled = true;
+            button.innerText = 'กำลังตรวจสอบ...';
+
+            try {
+                await verifyAdminKey(key);
+                adminToken = key;
+                sessionStorage.setItem('streamflix_admin_key', key);
+                closeAdminLoginModal();
+                await switchView('admin');
+            } catch (error) {
+                showNotification('เข้าสู่ระบบไม่สำเร็จ', 'รหัสผ่านผู้ดูแลระบบไม่ถูกต้อง');
+            } finally {
+                button.disabled = false;
+                button.innerText = 'เข้าสู่ระบบ';
+            }
+        }
+
+        async function ensureAdminAuth() {
+            if (!apiConfigured()) {
+                showNotification(
+                    'ยังไม่ได้ตั้งค่า API',
+                    'กรุณาใส่ URL ของ Cloudflare Worker ใน API_BASE_URL ก่อน'
+                );
+                return false;
+            }
+
+            if (adminToken) {
+                try {
+                    await verifyAdminKey(adminToken);
+                    return true;
+                } catch {
+                    adminToken = '';
+                    sessionStorage.removeItem('streamflix_admin_key');
+                }
+            }
+
+            openAdminLoginModal();
+
+            return new Promise(resolve => {
+                window._adminAuthResolver = resolve;
+            });
+        }
+
+        function logoutAdmin() {
+            adminToken = '';
+            sessionStorage.removeItem('streamflix_admin_key');
+            switchView('home');
+            showNotification('ออกจากระบบแล้ว', 'สิทธิ์ผู้ดูแลระบบถูกล้างจากเซสชันนี้แล้ว');
+        }
+
+        // Resolve pending login promise after successful login.
+        const originalSubmitAdminLogin = submitAdminLogin;
+        submitAdminLogin = async function(event) {
+            event.preventDefault();
+
+            if (!apiConfigured()) {
+                showNotification(
+                    'ยังไม่ได้ตั้งค่า API',
+                    'กรุณาใส่ URL ของ Cloudflare Worker ใน API_BASE_URL ก่อน'
+                );
+                return;
+            }
+
+            const input = document.getElementById('adminPasswordInput');
+            const button = document.getElementById('adminLoginButton');
+            const key = input.value;
+
+            if (!key) return;
+
+            button.disabled = true;
+            button.innerText = 'กำลังตรวจสอบ...';
+
+            try {
+                await verifyAdminKey(key);
+                adminToken = key;
+                sessionStorage.setItem('streamflix_admin_key', key);
+                closeAdminLoginModal();
+
+                if (window._adminAuthResolver) {
+                    const resolve = window._adminAuthResolver;
+                    window._adminAuthResolver = null;
+                    resolve(true);
+                }
+            } catch (error) {
+                showNotification('เข้าสู่ระบบไม่สำเร็จ', 'รหัสผ่านผู้ดูแลระบบไม่ถูกต้อง');
+                if (window._adminAuthResolver) {
+                    // Keep the modal open so the user can retry.
+                }
+            } finally {
+                button.disabled = false;
+                button.innerText = 'เข้าสู่ระบบ';
+            }
+        };
+
+        function cancelAdminLogin() {
+            closeAdminLoginModal();
+            if (window._adminAuthResolver) {
+                const resolve = window._adminAuthResolver;
+                window._adminAuthResolver = null;
+                resolve(false);
+            }
+        }
+
+        // ============================================================
+        // Featured movie
+        // ============================================================
+
+        function setupFeaturedMovie() {
+            if (movies.length === 0) {
+                document.getElementById('featuredTitle').innerText = 'ยังไม่มีภาพยนตร์';
+                document.getElementById('featuredDesc').innerText = 'เพิ่มภาพยนตร์จากระบบหลังบ้านเพื่อเริ่มต้นใช้งาน';
+                document.getElementById('featuredCategory').innerText = 'StreamFlix';
+                document.getElementById('featuredBg').src =
+                    'https://placehold.co/1600x700/0f172a/94a3b8?text=StreamFlix';
+                document.getElementById('featuredPlayBtn').onclick = () => {};
+                return;
+            }
+
+            const featured = movies[0];
+            document.getElementById('featuredTitle').innerText = featured.title;
+            document.getElementById('featuredDesc').innerText =
+                featured.desc || 'ไม่มีคำอธิบายภาพยนตร์';
+            document.getElementById('featuredCategory').innerText =
+                categoryNames[featured.category] || `หมวดหมู่ ${featured.category}`;
+            document.getElementById('featuredBg').src = featured.poster;
+            document.getElementById('featuredPlayBtn').onclick =
+                () => playMovie(featured.id);
+        }
+
+        function playFeaturedMovie() {
+            if (movies.length > 0) {
+                playMovie(movies[0].id);
+            }
+        }
+
+        // ============================================================
+        // Filters / Search
+        // ============================================================
+
+        function filterCategory(cat) {
+            currentCategory = cat;
+
+            document.querySelectorAll('.cat-filter-btn').forEach(btn => {
+                btn.classList.remove(
+                    'bg-brand-600',
+                    'text-white',
+                    'shadow-md',
+                    'shadow-brand-500/20'
+                );
+                btn.classList.add(
+                    'bg-dark-800',
+                    'border',
+                    'border-slate-700',
+                    'text-slate-300'
+                );
+            });
+
+            const activeBtn = document.getElementById(`cat-btn-${cat}`);
+            if (activeBtn) {
+                activeBtn.classList.remove(
+                    'bg-dark-800',
+                    'border',
+                    'border-slate-700',
+                    'text-slate-300'
+                );
+                activeBtn.classList.add(
+                    'bg-brand-600',
+                    'text-white',
+                    'shadow-md',
+                    'shadow-brand-500/20'
+                );
+            }
+
+            renderMovies();
+        }
+
+        function handleSearch(query) {
+            currentSearchQuery = query.trim().toLowerCase();
+            renderMovies();
+        }
+
+        // ============================================================
+        // Render movie grid
+        // ============================================================
+
+        function renderMovies() {
+            const grid = document.getElementById('movieGrid');
+            grid.innerHTML = '';
+
+            let filtered = movies.filter(movie => {
+                const title = String(movie.title || '').toLowerCase();
+                const category = String(movie.category || '').toLowerCase();
+                const desc = String(movie.desc || '').toLowerCase();
+
+                const matchCat =
+                    currentCategory === 'ทั้งหมด' ||
+                    movie.category === currentCategory;
+
+                const matchSearch =
+                    title.includes(currentSearchQuery) ||
+                    category.includes(currentSearchQuery) ||
+                    desc.includes(currentSearchQuery);
+
+                return matchCat && matchSearch;
+            });
+
+            document.getElementById('movieCount').innerText = filtered.length;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-16 text-center space-y-3">
+                        <div class="text-slate-500 text-4xl">
+                            <i class="fa-solid fa-film"></i>
+                        </div>
+                        <p class="text-slate-400 font-medium">
+                            ไม่พบภาพยนตร์ที่คุณค้นหา
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(movie => {
+                const card = document.createElement('div');
+                card.className =
+                    'group bg-dark-800 border border-slate-800 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl hover:border-slate-700 transition duration-300 flex flex-col cursor-pointer';
+
+                card.onclick = () => playMovie(movie.id);
+
+                card.innerHTML = `
+                    <div class="aspect-[2/3] w-full relative overflow-hidden bg-dark-900">
+                        <img
+                            src="${escapeHtml(movie.poster)}"
+                            onerror="this.src='https://placehold.co/400x600/1e293b/94a3b8?text=No+Poster'"
+                            alt="${escapeHtml(movie.title)}"
+                            class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                        >
+                        <div class="absolute inset-0 bg-gradient-to-t from-dark-900 via-transparent to-transparent opacity-60"></div>
+
+                        <span class="absolute top-3 left-3 bg-brand-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow">
+                            หมวดหมู่ ${escapeHtml(movie.category)}
+                        </span>
+
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300 bg-black/40">
+                            <div class="w-12 h-12 bg-brand-600 rounded-full flex items-center justify-center text-white shadow-lg transform scale-90 group-hover:scale-100 transition">
+                                <i class="fa-solid fa-play ml-0.5"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-4 flex flex-col flex-grow justify-between space-y-2">
+                        <h3 class="font-semibold text-slate-100 group-hover:text-brand-500 transition line-clamp-1 text-sm sm:text-base">
+                            ${escapeHtml(movie.title)}
+                        </h3>
+                        <p class="text-slate-400 text-xs line-clamp-2">
+                            ${escapeHtml(movie.desc || 'ไม่มีคำอธิบาย')}
+                        </p>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        // ============================================================
+        // Player
+        // ============================================================
+
+        // ============================================================
+        // Player
+        // ============================================================
+
+        let currentPlayingMovie = null;
+
+        function getVideoType(url) {
+            const value = String(url || '').trim();
+            if (!value) return 'empty';
+
+            try {
+                const parsed = new URL(value, window.location.href);
+                const host = parsed.hostname.toLowerCase();
+                const path = parsed.pathname.toLowerCase();
+
+                // YouTube links should be embedded in an iframe.
+                if (host === 'youtube.com' || host === 'www.youtube.com' ||
+                    host === 'm.youtube.com' || host === 'youtu.be' ||
+                    host === 'www.youtube-nocookie.com') {
+                    return 'iframe';
+                }
+
+                // Direct browser-playable video files.
+                if (/\.(mp4|webm|ogg|ogv)(?:$|\?)/i.test(path)) {
+                    return 'video';
+                }
+
+                // HLS playlists need a player/library; don't put them in an iframe as a file.
+                if (/\.m3u8(?:$|\?)/i.test(path)) {
+                    return 'hls';
+                }
+            } catch {}
+
+            // A normal webpage cannot always be embedded because the destination
+            // may send X-Frame-Options / CSP. Open the real page instead.
+            return 'webpage';
+        }
+
+        function toYouTubeEmbedUrl(url) {
+            try {
+                const parsed = new URL(url);
+                const host = parsed.hostname.toLowerCase();
+
+                if (host === 'youtu.be' || host === 'www.youtu.be') {
+                    const id = parsed.pathname.replace(/^\/+/, '').split('/')[0];
+                    return id ? `https://www.youtube.com/embed/${id}` : url;
+                }
+
+                if (host === 'youtube.com' || host === 'www.youtube.com' || host === 'm.youtube.com') {
+                    if (parsed.pathname === '/watch') {
+                        const id = parsed.searchParams.get('v');
+                        if (id) return `https://www.youtube.com/embed/${id}`;
+                    }
+
+                    if (parsed.pathname.startsWith('/shorts/')) {
+                        const id = parsed.pathname.split('/')[2];
+                        if (id) return `https://www.youtube.com/embed/${id}`;
+                    }
+
+                    if (parsed.pathname.startsWith('/embed/')) {
+                        return url;
+                    }
+                }
+            } catch {}
+
+            return url;
+        }
+
+        function setPlayerMode(mode) {
+            const iframe = document.getElementById('moviePlayerIframe');
+            const video = document.getElementById('moviePlayerVideo');
+            const loading = document.getElementById('playerLoading');
+            const empty = document.getElementById('playerEmpty');
+
+            iframe.classList.add('hidden');
+            video.classList.add('hidden');
+            loading.classList.add('hidden');
+            empty.classList.add('hidden');
+
+            if (mode === 'loading') loading.classList.remove('hidden');
+            if (mode === 'iframe') iframe.classList.remove('hidden');
+            if (mode === 'video') video.classList.remove('hidden');
+            if (mode === 'empty') empty.classList.remove('hidden');
+        }
+
+        function openCurrentMovieExternal() {
+            if (!currentPlayingMovie || !currentPlayingMovie.videoUrl) return;
+            const url = String(currentPlayingMovie.videoUrl).trim();
+            if (!url) return;
+
+            // This is called directly from a user click, so browsers normally
+            // allow the new tab/window just like opening a link from LINE.
+            window.open(url, '_blank', 'noopener,noreferrer');
+        }
+
+        function setOriginalLink(url) {
+            const links = [
+                document.getElementById('playerOpenOriginal'),
+                document.getElementById('playerOpenOriginalBottom')
+            ];
+
+            links.forEach(link => {
+                if (!link) return;
+                link.href = url || '#';
+                link.classList.toggle('pointer-events-none', !url);
+                link.classList.toggle('opacity-50', !url);
+            });
+
+            const hint = document.getElementById('playerUrlHint');
+            if (hint) hint.innerText = url ? `ลิงก์: ${url}` : '';
+        }
+
+        function playMovie(id) {
+            const movie = movies.find(m => String(m.id) === String(id));
+            if (!movie) return;
+
+            currentPlayingMovie = movie;
+
+            document.getElementById('playerTitle').innerText = movie.title;
+            document.getElementById('playerCategoryBadge').innerText =
+                categoryNames[movie.category] || `หมวดหมู่ ${movie.category}`;
+            document.getElementById('playerDesc').innerText =
+                movie.desc || 'ไม่มีคำอธิบายภาพยนตร์';
+            document.getElementById('playerDate').innerText =
+                `เพิ่มเมื่อ: ${movie.date || '-'}`;
+
+            const iframe = document.getElementById('moviePlayerIframe');
+            const video = document.getElementById('moviePlayerVideo');
+            const url = String(movie.videoUrl || '').trim();
+
+            // Stop and clear anything that was previously playing.
+            iframe.src = 'about:blank';
+            video.pause();
+            video.removeAttribute('src');
+            video.load();
+
+            setOriginalLink(url);
+
+            if (!url) {
+                document.getElementById('playerEmptyText').innerText =
+                    'เรื่องนี้ยังไม่มีลิงก์วิดีโอ';
+                setPlayerMode('empty');
+                switchView('player');
+                return;
+            }
+
+            const type = getVideoType(url);
+
+            if (type === 'video') {
+                setPlayerMode('loading');
+                video.src = url;
+                video.onloadedmetadata = () => setPlayerMode('video');
+                video.onerror = () => {
+                    document.getElementById('playerEmptyText').innerText =
+                        'ไม่สามารถเล่นไฟล์วิดีโอนี้ในเบราว์เซอร์ได้ กรุณาเปิดลิงก์ต้นฉบับ';
+                    setPlayerMode('empty');
+                };
+                video.load();
+            } else if (type === 'iframe') {
+                const embedUrl = toYouTubeEmbedUrl(url);
+                setPlayerMode('loading');
+
+                // We cannot reliably detect cross-origin iframe blocking.
+                // Show the iframe and keep a permanent "เปิดลิงก์ต้นฉบับ" fallback.
+                iframe.onload = () => {
+                    setPlayerMode('iframe');
+                };
+                iframe.onerror = () => {
+                    document.getElementById('playerEmptyText').innerText =
+                        'เว็บไซต์ปลายทางไม่สามารถฝังในหน้านี้ได้ กรุณาเปิดลิงก์ต้นฉบับ';
+                    setPlayerMode('empty');
+                };
+                iframe.src = embedUrl;
+
+                // Some sites return a blank iframe without firing onerror.
+                // Keep a visible fallback message below the player.
+                setTimeout(() => {
+                    if (currentPlayingMovie === movie && !iframe.classList.contains('hidden')) return;
+                    if (currentPlayingMovie === movie) {
+                        setPlayerMode('iframe');
+                    }
+                }, 1800);
+            } else if (type === 'webpage') {
+                // Do NOT iframe normal movie websites. Many sites intentionally
+                // block iframe embedding. Show the movie page and let the user
+                // open the original URL in a real browser tab.
+                document.getElementById('playerEmptyText').innerText =
+                    'ลิงก์นี้เป็นหน้าเว็บหนัง ระบบจะเปิดหน้าเว็บจริงให้แทนการฝังในกรอบ';
+                document.getElementById('playerEmptyIcon').className =
+                    'fa-solid fa-arrow-up-right-from-square text-3xl text-brand-500';
+                document.getElementById('playerOpenButton').innerHTML =
+                    '<i class="fa-solid fa-play"></i> เปิดดูหนัง';
+                setPlayerMode('empty');
+
+                // Open immediately when the user clicked the movie card/button.
+                // If the browser blocks it, the visible button remains available.
+                const opened = window.open(url, '_blank', 'noopener,noreferrer');
+                if (!opened) {
+                    document.getElementById('playerEmptyText').innerText =
+                        'เบราว์เซอร์บล็อกการเปิดหน้าต่างอัตโนมัติ กรุณากดปุ่ม “เปิดดูหนัง”';
+                }
+            } else if (type === 'hls') {
+                document.getElementById('playerEmptyText').innerText =
+                    'ลิงก์นี้เป็น HLS (.m3u8) ซึ่งยังไม่สามารถเล่นโดยตรงในตัวนี้ได้';
+                document.getElementById('playerEmptyIcon').className =
+                    'fa-solid fa-circle-exclamation text-3xl text-amber-400';
+                document.getElementById('playerOpenButton').innerHTML =
+                    '<i class="fa-solid fa-arrow-up-right-from-square"></i> เปิดลิงก์ต้นฉบับ';
+                setPlayerMode('empty');
+            } else {
+                document.getElementById('playerEmptyText').innerText =
+                    'ไม่สามารถระบุรูปแบบลิงก์นี้ได้ กรุณาเปิดลิงก์ต้นฉบับ';
+                document.getElementById('playerEmptyIcon').className =
+                    'fa-solid fa-circle-exclamation text-3xl text-amber-400';
+                document.getElementById('playerOpenButton').innerHTML =
+                    '<i class="fa-solid fa-arrow-up-right-from-square"></i> เปิดลิงก์ต้นฉบับ';
+                setPlayerMode('empty');
+            }
+
+            switchView('player');
+        }
+
+        function reloadCurrentPlayer() {
+            if (!currentPlayingMovie) return;
+            playMovie(currentPlayingMovie.id);
+        }
+
+        // ============================================================
+        // Admin movie modal
+        // ============================================================
+
+        function openAddMovieModal() {
+            document.getElementById('modalTitle').innerText = 'เพิ่มภาพยนตร์ใหม่';
+            document.getElementById('movieForm').reset();
+            document.getElementById('movieId').value = '';
+            document.getElementById('posterPreviewImg').src =
+                'https://placehold.co/100x150/1e293b/94a3b8?text=Preview';
+            document.getElementById('movieModal').classList.remove('hidden');
+        }
+
+        function openEditMovieModal(id) {
+            const movie = movies.find(m => String(m.id) === String(id));
+            if (!movie) return;
+
+            document.getElementById('modalTitle').innerText = 'แก้ไขข้อมูลภาพยนตร์';
+            document.getElementById('movieId').value = movie.id;
+            document.getElementById('movieTitleInput').value = movie.title;
+            document.getElementById('movieCategoryInput').value = movie.category;
+            document.getElementById('moviePosterInput').value = movie.poster;
+            document.getElementById('movieUrlInput').value = movie.videoUrl;
+            document.getElementById('movieDescInput').value = movie.desc || '';
+            document.getElementById('posterPreviewImg').src = movie.poster;
+
+            document.getElementById('movieModal').classList.remove('hidden');
+        }
+
+        function closeMovieModal() {
+            document.getElementById('movieModal').classList.add('hidden');
+        }
+
+        function previewPosterUrl(url) {
+            const img = document.getElementById('posterPreviewImg');
+
+            if (url.trim() !== '') {
+                img.src = url;
+            } else {
+                img.src =
+                    'https://placehold.co/100x150/1e293b/94a3b8?text=Preview';
+            }
+        }
+
+        async function saveMovie(e) {
+            e.preventDefault();
+
+            if (!apiConfigured()) {
+                showNotification(
+                    'ยังไม่ได้ตั้งค่า API',
+                    'กรุณาใส่ URL ของ Cloudflare Worker ใน API_BASE_URL ก่อน'
+                );
+                return;
+            }
+
+            if (!adminToken) {
+                showNotification('หมดสิทธิ์ผู้ดูแล', 'กรุณาเข้าสู่ระบบหลังบ้านใหม่');
+                return;
+            }
+
+            const id = document.getElementById('movieId').value.trim();
+            const title = document.getElementById('movieTitleInput').value.trim();
+            const category = document.getElementById('movieCategoryInput').value;
+            const poster = document.getElementById('moviePosterInput').value.trim();
+            const videoUrl = document.getElementById('movieUrlInput').value.trim();
+            const desc = document.getElementById('movieDescInput').value.trim();
+
+            const button = document.querySelector('#movieForm button[type="submit"]');
+            const oldText = button.innerText;
+            button.disabled = true;
+            button.innerText = 'กำลังบันทึก...';
+
+            try {
+                if (id) {
+                    const updated = await updateMovieRemote(id, {
+                        title,
+                        category,
+                        poster,
+                        videoUrl,
+                        desc
+                    });
+
+                    const index = movies.findIndex(
+                        movie => String(movie.id) === String(id)
+                    );
+
+                    if (index !== -1) {
+                        movies[index] = updated;
+                    }
+
+                    closeMovieModal();
+                    renderMovies();
+                    updateStats();
+                    renderAdminTable();
+                    setupFeaturedMovie();
+
+                    showNotification(
+                        'สำเร็จ',
+                        'อัปเดตข้อมูลภาพยนตร์ลงฐานข้อมูลแล้ว'
+                    );
+                } else {
+                    const created = await createMovie({
+                        title,
+                        category,
+                        poster,
+                        videoUrl,
+                        desc
+                    });
+
+                    movies.unshift(created);
+
+                    closeMovieModal();
+                    renderMovies();
+                    updateStats();
+                    renderAdminTable();
+                    setupFeaturedMovie();
+
+                    showNotification(
+                        'สำเร็จ',
+                        'เพิ่มภาพยนตร์ลงฐานข้อมูลแล้ว'
+                    );
+                }
+            } catch (error) {
+                console.error('saveMovie error:', error);
+
+                if (/unauthorized|forbidden|401|403/i.test(error.message)) {
+                    adminToken = '';
+                    sessionStorage.removeItem('streamflix_admin_key');
+                }
+
+                showNotification(
+                    'บันทึกไม่สำเร็จ',
+                    error.message
+                );
+            } finally {
+                button.disabled = false;
+                button.innerText = oldText;
+            }
+        }
+
+        async function deleteMovie(id) {
+            if (!adminToken) {
+                showNotification('หมดสิทธิ์ผู้ดูแล', 'กรุณาเข้าสู่ระบบหลังบ้านใหม่');
+                return;
+            }
+
+            const movie = movies.find(m => String(m.id) === String(id));
+            if (!movie) return;
+
+            if (!window.confirm(`คุณต้องการลบ "${movie.title}" ออกจากระบบใช่หรือไม่?`)) {
+                return;
+            }
+
+            try {
+                await deleteMovieRemote(id);
+
+                movies = movies.filter(
+                    movieItem => String(movieItem.id) !== String(id)
+                );
+
+                renderMovies();
+                updateStats();
+                renderAdminTable();
+                setupFeaturedMovie();
+
+                showNotification(
+                    'สำเร็จ',
+                    'ลบภาพยนตร์ออกจากฐานข้อมูลแล้ว'
+                );
+            } catch (error) {
+                console.error('deleteMovie error:', error);
+
+                if (/unauthorized|forbidden|401|403/i.test(error.message)) {
+                    adminToken = '';
+                    sessionStorage.removeItem('streamflix_admin_key');
+                }
+
+                showNotification(
+                    'ลบไม่สำเร็จ',
+                    error.message
+                );
+            }
+        }
+
+        // ============================================================
+        // Admin table
+        // ============================================================
+
+        function renderAdminTable(search = '') {
+            const tbody = document.getElementById('adminMovieTableBody');
+            tbody.innerHTML = '';
+
+            const query = search.trim().toLowerCase();
+
+            const filtered = movies.filter(movie =>
+                String(movie.title || '').toLowerCase().includes(query) ||
+                String(movie.category || '').toLowerCase().includes(query) ||
+                String(movie.videoUrl || '').toLowerCase().includes(query)
+            );
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-slate-500">
+                            ไม่พบข้อมูลภาพยนตร์ในระบบหลังบ้าน
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            filtered.forEach(movie => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-dark-900/40 transition';
+
+                tr.innerHTML = `
+                    <td class="p-4">
+                        <img
+                            src="${escapeHtml(movie.poster)}"
+                            onerror="this.src='https://placehold.co/100x150/1e293b/94a3b8?text=No+Image'"
+                            class="w-10 h-14 object-cover rounded-lg border border-slate-700 shadow-sm"
+                            alt=""
+                        >
+                    </td>
+
+                    <td class="p-4 font-semibold text-slate-200">
+                        ${escapeHtml(movie.title)}
+                    </td>
+
+                    <td class="p-4">
+                        <span class="bg-brand-600/20 text-brand-500 border border-brand-500/30 text-xs px-2.5 py-1 rounded-full font-semibold uppercase">
+                            หมวด ${escapeHtml(movie.category)}
+                        </span>
+                    </td>
+
+                    <td class="p-4 text-xs text-slate-400 truncate max-w-xs">
+                        <a
+                            href="${escapeHtml(movie.videoUrl)}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="hover:text-brand-500 underline truncate block"
+                        >
+                            ${escapeHtml(movie.videoUrl)}
+                        </a>
+                    </td>
+
+                    <td class="p-4 text-center">
+                        <div class="flex items-center justify-center space-x-2">
+                            <button
+                                onclick="openEditMovieModal('${escapeHtml(movie.id)}')"
+                                class="bg-slate-700 hover:bg-slate-600 text-slate-200 p-2 rounded-xl text-xs transition shadow"
+                                title="แก้ไข"
+                            >
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+
+                            <button
+                                onclick="deleteMovie('${escapeHtml(movie.id)}')"
+                                class="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white p-2 rounded-xl text-xs transition shadow"
+                                title="ลบ"
+                            >
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterAdminTable(query) {
+            renderAdminTable(query.trim());
+        }
+
+        // ============================================================
+        // Stats
+        // ============================================================
+
+        function updateStats() {
+            document.getElementById('statTotal').innerText = movies.length;
+            document.getElementById('statCatA').innerText =
+                movies.filter(m => m.category === 'A').length;
+            document.getElementById('statCatB').innerText =
+                movies.filter(m => m.category === 'B').length;
+            document.getElementById('statCatC').innerText =
+                movies.filter(m => m.category === 'C').length;
+            document.getElementById('statCatD').innerText =
+                movies.filter(m => m.category === 'D').length;
+            document.getElementById('statCatE').innerText =
+                movies.filter(m => m.category === 'E').length;
+        }
+
+        // ============================================================
+        // Notifications
+        // ============================================================
+
+        function showNotification(title, message) {
+            document.getElementById('notifTitle').innerText = title;
+            document.getElementById('notifMessage').innerText = message;
+            document.getElementById('notificationModal').classList.remove('hidden');
+        }
+
+        function closeNotification() {
+            document.getElementById('notificationModal').classList.add('hidden');
+        }
+    </script>
+
+</body>
+</html>
